@@ -14,23 +14,23 @@ use source::{FxTwitter, Media, Syndication, Tweet, VideoSource};
 
 const DEFAULT_MAX_SIZE: &str = "100MB";
 
-/// Baixa vídeos de posts do X (antigo Twitter) na melhor qualidade que
-/// caiba no limite de tamanho.
+/// Downloads videos from X (formerly Twitter) posts at the best quality
+/// that fits within a size limit.
 #[derive(Parser)]
 #[command(version)]
 struct Cli {
-    /// Link do post, ex.: https://x.com/usuario/status/123/video/1
+    /// Post link, e.g. https://x.com/user/status/123/video/1
     url: String,
 
-    /// Pasta de destino (padrão: ~/Downloads)
+    /// Output directory (default: ~/Downloads)
     #[arg(short, long)]
     output: Option<PathBuf>,
 
-    /// Tamanho máximo do arquivo, ex.: 50MB, 1.5GB, 800KB
+    /// Maximum file size, e.g. 50MB, 1.5GB, 800KB
     #[arg(short = 's', long, default_value = DEFAULT_MAX_SIZE, value_parser = parse_size)]
     max_size: u64,
 
-    /// Ignora o limite e baixa a maior resolução disponível
+    /// Ignore the size limit and download the highest resolution available
     #[arg(short, long)]
     best: bool,
 }
@@ -51,11 +51,11 @@ fn main() -> ExitCode {
     match run(&cli) {
         Ok(()) => ExitCode::SUCCESS,
         Err(Failure::Invalid) => {
-            eprintln!("Link inválido: {}", cli.url.trim());
+            eprintln!("Invalid link: {}", cli.url.trim());
             ExitCode::from(1)
         }
         Err(Failure::Other(e)) => {
-            eprintln!("Erro: {e:#}");
+            eprintln!("Error: {e:#}");
             ExitCode::from(3)
         }
     }
@@ -115,7 +115,7 @@ fn run(cli: &Cli) -> Result<(), Failure> {
         };
         if !fits {
             eprintln!(
-                "Aviso: nenhuma versão cabe em {}; baixando a menor disponível.",
+                "Warning: no version fits in {}; downloading the smallest available.",
                 format_size(cli.max_size)
             );
         }
@@ -127,18 +127,18 @@ fn run(cli: &Cli) -> Result<(), Failure> {
         };
         let dest = dir.join(name);
         if dest.exists() {
-            println!("Já existe: {}", dest.display());
+            println!("Already exists: {}", dest.display());
             continue;
         }
 
-        println!("Baixando {} …", resolution(&variant.url).unwrap_or("vídeo"));
+        println!("Downloading {} …", resolution(&variant.url).unwrap_or("video"));
         let bytes = download::download(&agent, &variant.url, &dest)?;
-        println!("Salvo em {} ({})", dest.display(), format_size(bytes));
+        println!("Saved to {} ({})", dest.display(), format_size(bytes));
     }
     Ok(())
 }
 
-/// Tenta cada fonte em ordem; a primeira que encontrar o tweet vence.
+/// Tries each source in order; the first one that finds the tweet wins.
 fn fetch_tweet(sources: &[Box<dyn VideoSource>], link: &link::TweetLink) -> Result<Option<Tweet>> {
     let mut last_err = None;
     let mut not_found = false;
@@ -146,16 +146,16 @@ fn fetch_tweet(sources: &[Box<dyn VideoSource>], link: &link::TweetLink) -> Resu
         match s.fetch(link) {
             Ok(Some(t)) => return Ok(Some(t)),
             Ok(None) => not_found = true,
-            Err(e) => last_err = Some(e.context(format!("fonte {}", s.name()))),
+            Err(e) => last_err = Some(e.context(format!("source {}", s.name()))),
         }
     }
     match last_err {
-        Some(e) if !not_found => bail!("não foi possível consultar o X: {e:#}"),
+        Some(e) if !not_found => bail!("could not reach X: {e:#}"),
         _ => Ok(None),
     }
 }
 
-/// Extrai "854x480" da URL do vídeo, se presente.
+/// Extracts "854x480" from the video URL, if present.
 fn resolution(url: &str) -> Option<&str> {
     url.split('/').find(|p| {
         p.split_once('x')
@@ -167,13 +167,13 @@ fn parse_size(s: &str) -> Result<u64, String> {
     let s = s.trim().to_ascii_uppercase();
     let split = s.find(|c: char| !(c.is_ascii_digit() || c == '.')).unwrap_or(s.len());
     let (num, unit) = s.split_at(split);
-    let num: f64 = num.parse().map_err(|_| format!("tamanho inválido: {s}"))?;
+    let num: f64 = num.parse().map_err(|_| format!("invalid size: {s}"))?;
     let mult = match unit.trim() {
         "" | "B" => 1u64,
         "K" | "KB" => 1 << 10,
         "M" | "MB" => 1 << 20,
         "G" | "GB" => 1 << 30,
-        _ => return Err(format!("unidade inválida em {s} (use KB, MB ou GB)")),
+        _ => return Err(format!("invalid unit in {s} (use KB, MB or GB)")),
     };
     Ok((num * mult as f64) as u64)
 }
@@ -188,7 +188,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tamanhos() {
+    fn sizes() {
         assert_eq!(parse_size("100MB"), Ok(100 << 20));
         assert_eq!(parse_size("1.5gb"), Ok((1.5 * (1u64 << 30) as f64) as u64));
         assert_eq!(parse_size("800K"), Ok(800 << 10));
@@ -198,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn resolucao_da_url() {
+    fn resolution_from_url() {
         let u = "https://video.twimg.com/amplify_video/1/vid/avc1/854x480/G3Ua.mp4";
         assert_eq!(resolution(u), Some("854x480"));
         assert_eq!(resolution("https://x/abc.mp4"), None);

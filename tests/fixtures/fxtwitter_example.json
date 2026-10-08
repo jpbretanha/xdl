@@ -3,10 +3,10 @@
   "message": "OK",
   "tweet": {
     "id": "1234567890123456789",
-    "text": "Post de exemplo",
+    "text": "Example post",
     "author": {
-      "name": "Usuário",
-      "screen_name": "usuario"
+      "name": "User",
+      "screen_name": "user"
     },
     "media": {
       "all": [

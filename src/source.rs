@@ -1,5 +1,5 @@
-//! Fontes de metadados de tweets. Cada fonte implementa [`VideoSource`];
-//! novas fontes podem ser adicionadas sem alterar o resto do programa.
+//! Tweet metadata sources. Each source implements [`VideoSource`];
+//! new sources can be added without touching the rest of the program.
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -9,7 +9,7 @@ use crate::link::TweetLink;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tweet {
     pub user: String,
-    /// Todas as mídias do tweet, na ordem em que aparecem (`/video/{n}` indexa aqui).
+    /// All media in the tweet, in display order (`/video/{n}` indexes into this).
     pub media: Vec<Media>,
 }
 
@@ -35,11 +35,11 @@ pub struct Variant {
 
 pub trait VideoSource {
     fn name(&self) -> &'static str;
-    /// `Ok(None)` significa que o tweet não existe ou não está acessível.
+    /// `Ok(None)` means the tweet does not exist or is not accessible.
     fn fetch(&self, link: &TweetLink) -> Result<Option<Tweet>>;
 }
 
-/// Faz GET e devolve o corpo em texto, ou `None` em 404.
+/// Performs a GET and returns the body as text, or `None` on 404.
 fn get_text(agent: &ureq::Agent, url: &str) -> Result<Option<String>> {
     match agent.get(url).call() {
         Ok(mut resp) => Ok(Some(resp.body_mut().read_to_string()?)),
@@ -49,7 +49,7 @@ fn get_text(agent: &ureq::Agent, url: &str) -> Result<Option<String>> {
 }
 
 // ---------------------------------------------------------------------------
-// Syndication (cdn.syndication.twimg.com) — usado pelos embeds oficiais do X.
+// Syndication (cdn.syndication.twimg.com) — used by X's official embeds.
 
 pub struct Syndication {
     pub agent: ureq::Agent,
@@ -105,12 +105,12 @@ impl Syndication {
     }
 }
 
-/// Token exigido pelo endpoint: `((id / 1e15) * π).toString(36)` sem zeros e sem ponto.
+/// Token required by the endpoint: `((id / 1e15) * π).toString(36)` with zeros and the dot removed.
 pub fn syndication_token(id: u64) -> String {
     let n = (id as f64 / 1e15) * std::f64::consts::PI;
     let digit = |d: u32| char::from_digit(d, 36).unwrap();
 
-    // 8 dígitos fracionários arredondados, como o JS faz para números dessa magnitude.
+    // 8 rounded fractional digits, matching JS output for numbers of this magnitude.
     const FRAC_DIGITS: u32 = 8;
     let scale = 36u64.pow(FRAC_DIGITS);
     let mut int = n.trunc() as u64;
@@ -151,7 +151,7 @@ impl VideoSource for Syndication {
 }
 
 // ---------------------------------------------------------------------------
-// FxTwitter (api.fxtwitter.com) — serviço de terceiros, usado como fallback.
+// FxTwitter (api.fxtwitter.com) — third-party service, used as a fallback.
 
 pub struct FxTwitter {
     pub agent: ureq::Agent,
@@ -227,9 +227,9 @@ mod tests {
     const FX: &str = include_str!("../tests/fixtures/fxtwitter_example.json");
 
     fn assert_example(t: Tweet) {
-        assert_eq!(t.user, "usuario");
+        assert_eq!(t.user, "user");
         assert_eq!(t.media.len(), 1);
-        let Media::Video(v) = &t.media[0] else { panic!("esperava vídeo") };
+        let Media::Video(v) = &t.media[0] else { panic!("expected a video") };
         assert_eq!(v.duration_ms, Some(15325));
         let mp4: Vec<_> = v.variants.iter().filter(|v| v.content_type == "video/mp4").collect();
         assert_eq!(mp4.len(), 3);
@@ -237,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn token_do_exemplo() {
+    fn example_token() {
         assert_eq!(syndication_token(1234567890123456789), "2zqic77uqyk");
     }
 
@@ -252,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn syndication_tombstone_e_sem_midia() {
+    fn syndication_tombstone_and_no_media() {
         assert_eq!(Syndication::parse(r#"{"__typename":"TweetTombstone"}"#).unwrap(), None);
         let t = Syndication::parse(r#"{"__typename":"Tweet","user":{"screen_name":"jack"}}"#)
             .unwrap()
@@ -261,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    fn fxtwitter_nao_encontrado() {
+    fn fxtwitter_not_found() {
         assert_eq!(FxTwitter::parse(r#"{"code":404,"message":"NOT_FOUND"}"#).unwrap(), None);
     }
 }

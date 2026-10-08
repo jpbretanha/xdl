@@ -1,4 +1,4 @@
-//! Download com barra de progresso, gravando em `.part` e renomeando ao final.
+//! Download with a progress bar, writing to `.part` and renaming when done.
 
 use std::fs::{self, File};
 use std::io::{self, BufWriter, Write};
@@ -7,14 +7,14 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
 
-/// Tamanho real via `Content-Length` de um HEAD; `None` se indisponível.
+/// Actual size from a HEAD request's `Content-Length`; `None` if unavailable.
 pub fn remote_size(agent: &ureq::Agent, url: &str) -> Option<u64> {
     let resp = agent.head(url).call().ok()?;
     resp.headers().get("content-length")?.to_str().ok()?.parse().ok()
 }
 
 pub fn download(agent: &ureq::Agent, url: &str, dest: &Path) -> Result<u64> {
-    let mut resp = agent.get(url).call().context("falha ao iniciar o download")?;
+    let mut resp = agent.get(url).call().context("failed to start download")?;
     let total = resp
         .headers()
         .get("content-length")
@@ -32,7 +32,7 @@ pub fn download(agent: &ureq::Agent, url: &str, dest: &Path) -> Result<u64> {
 
     let part = dest.with_extension("mp4.part");
     let result = (|| -> Result<u64> {
-        let mut out = BufWriter::new(File::create(&part).context("não foi possível criar o arquivo")?);
+        let mut out = BufWriter::new(File::create(&part).context("could not create file")?);
         let mut reader = pb.wrap_read(resp.body_mut().as_reader());
         let n = io::copy(&mut reader, &mut out)?;
         out.flush()?;

@@ -24,7 +24,7 @@ xdl <link> --best             # ignore the size limit
 ```
 
 - `/video/N` downloads only the N-th media item; without the suffix, all videos in the post are downloaded.
-- Invalid links, missing/private posts and posts without video print `Link inválido` (exit code 1). Other failures (network, etc.) exit with code 3.
+- Invalid links, missing/private posts and posts without video print `Invalid link` (exit code 1). Other failures (network, etc.) exit with code 3.
 
 ## How it works
 

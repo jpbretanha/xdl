@@ -1,8 +1,8 @@
-//! Escolha da variante: maior qualidade que caiba no limite de tamanho.
+//! Variant selection: highest quality that fits the size limit.
 
 use crate::source::{Variant, Video};
 
-/// Variantes MP4 ordenadas da maior para a menor qualidade.
+/// MP4 variants sorted from highest to lowest quality.
 pub fn mp4_variants(video: &Video) -> Vec<&Variant> {
     let mut v: Vec<&Variant> = video
         .variants
@@ -13,15 +13,15 @@ pub fn mp4_variants(video: &Video) -> Vec<&Variant> {
     v
 }
 
-/// Tamanho estimado em bytes (o bitrate do X é um teto, então superestima).
+/// Estimated size in bytes (X's bitrate is a ceiling, so this overestimates).
 pub fn estimate_size(variant: &Variant, duration_ms: Option<u64>) -> Option<u64> {
     Some(variant.bitrate? * duration_ms? / 8 / 1000)
 }
 
-/// Percorre as variantes (melhor → pior) e devolve a primeira cujo tamanho
-/// caiba em `max_size`. `size_of` devolve o tamanho real (ex.: via HEAD) ou
-/// `None` para cair na estimativa. Se nenhuma couber, devolve a menor.
-/// O segundo valor indica se o limite foi respeitado.
+/// Walks the variants (best → worst) and returns the first one whose size
+/// fits in `max_size`. `size_of` returns the actual size (e.g. via HEAD) or
+/// `None` to fall back to the estimate. If none fits, returns the smallest.
+/// The second value tells whether the limit was respected.
 pub fn choose<'a>(
     variants: &[&'a Variant],
     duration_ms: Option<u64>,
@@ -57,7 +57,7 @@ mod tests {
         }
     }
 
-    // Tamanhos reais (Content-Length) de um vídeo de 15 s com essas variantes.
+    // Actual sizes (Content-Length) of a 15 s video with these variants.
     fn real_size(v: &Variant) -> Option<u64> {
         if v.url.contains("854x480") {
             Some(1_948_290)
@@ -69,7 +69,7 @@ mod tests {
     }
 
     #[test]
-    fn ignora_hls_e_ordena() {
+    fn skips_hls_and_sorts() {
         let video = example();
         let v = mp4_variants(&video);
         assert_eq!(v.len(), 3);
@@ -78,43 +78,43 @@ mod tests {
     }
 
     #[test]
-    fn escolhe_480p_com_limite_padrao() {
+    fn picks_480p_with_default_limit() {
         let video = example();
         let (v, ok) = choose(&mp4_variants(&video), video.duration_ms, Some(100 * MB), real_size).unwrap();
         assert!(v.url.contains("854x480") && ok);
     }
 
     #[test]
-    fn desce_para_360p_com_limite_de_1_5mb() {
+    fn falls_back_to_360p_with_1_5mb_limit() {
         let video = example();
         let (v, ok) = choose(&mp4_variants(&video), video.duration_ms, Some(MB * 3 / 2), real_size).unwrap();
         assert!(v.url.contains("640x360") && ok);
     }
 
     #[test]
-    fn desce_para_270p_com_limite_de_1mb() {
+    fn falls_back_to_270p_with_1mb_limit() {
         let video = example();
         let (v, ok) = choose(&mp4_variants(&video), video.duration_ms, Some(MB), real_size).unwrap();
         assert!(v.url.contains("480x270") && ok);
     }
 
     #[test]
-    fn usa_estimativa_sem_content_length() {
-        // Estimativa da 480p ≈ 4,17 MB → não cabe em 3 MB, cai para 360p (~1,6 MB).
+    fn uses_estimate_without_content_length() {
+        // 480p estimate ≈ 4.17 MB → doesn't fit in 3 MB, falls back to 360p (~1.6 MB).
         let video = example();
         let (v, _) = choose(&mp4_variants(&video), video.duration_ms, Some(3 * MB), |_| None).unwrap();
         assert!(v.url.contains("640x360"));
     }
 
     #[test]
-    fn nenhuma_cabe_usa_a_menor() {
+    fn none_fits_uses_smallest() {
         let video = example();
         let (v, ok) = choose(&mp4_variants(&video), video.duration_ms, Some(1), real_size).unwrap();
         assert!(v.url.contains("480x270") && !ok);
     }
 
     #[test]
-    fn best_ignora_limite() {
+    fn best_ignores_limit() {
         let video = example();
         let (v, ok) = choose(&mp4_variants(&video), video.duration_ms, None, |_| unreachable!()).unwrap();
         assert!(v.url.contains("854x480") && ok);

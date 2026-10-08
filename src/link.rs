@@ -1,4 +1,4 @@
-//! Validação de links do X/Twitter.
+//! X/Twitter link validation.
 
 const HOSTS: &[&str] = &["x.com", "twitter.com", "mobile.twitter.com", "mobile.x.com"];
 
@@ -6,11 +6,11 @@ const HOSTS: &[&str] = &["x.com", "twitter.com", "mobile.twitter.com", "mobile.x
 pub struct TweetLink {
     pub user: String,
     pub id: u64,
-    /// Índice (base 1) vindo de `/video/{n}` ou `/photo/{n}`.
+    /// 1-based index from `/video/{n}` or `/photo/{n}`.
     pub media_index: Option<usize>,
 }
 
-/// Retorna `None` se o texto não for um link de tweet válido.
+/// Returns `None` if the input is not a valid tweet link.
 pub fn parse(input: &str) -> Option<TweetLink> {
     let s = input.trim();
     let s = s
@@ -57,48 +57,48 @@ mod tests {
     const ID: u64 = 1234567890123456789;
 
     fn ok(url: &str, idx: Option<usize>) {
-        let link = parse(url).unwrap_or_else(|| panic!("deveria aceitar: {url}"));
-        assert_eq!(link.user, "usuario");
+        let link = parse(url).unwrap_or_else(|| panic!("should accept: {url}"));
+        assert_eq!(link.user, "user");
         assert_eq!(link.id, ID);
         assert_eq!(link.media_index, idx, "{url}");
     }
 
     #[test]
-    fn aceita_link_de_exemplo() {
-        ok("https://x.com/usuario/status/1234567890123456789/video/1", Some(1));
+    fn accepts_example_link() {
+        ok("https://x.com/user/status/1234567890123456789/video/1", Some(1));
     }
 
     #[test]
-    fn aceita_variacoes() {
-        ok("https://x.com/usuario/status/1234567890123456789", None);
-        ok("https://x.com/usuario/status/1234567890123456789/", None);
-        ok("https://x.com/usuario/status/1234567890123456789?s=20", None);
-        ok("https://x.com/usuario/status/1234567890123456789/video/1?s=46&t=abc", Some(1));
-        ok("https://twitter.com/usuario/status/1234567890123456789", None);
-        ok("https://www.twitter.com/usuario/status/1234567890123456789", None);
-        ok("https://mobile.twitter.com/usuario/status/1234567890123456789", None);
-        ok("http://WWW.X.COM/usuario/status/1234567890123456789/photo/2", Some(2));
-        ok("x.com/usuario/status/1234567890123456789", None);
-        ok("  https://x.com/usuario/status/1234567890123456789  ", None);
+    fn accepts_variations() {
+        ok("https://x.com/user/status/1234567890123456789", None);
+        ok("https://x.com/user/status/1234567890123456789/", None);
+        ok("https://x.com/user/status/1234567890123456789?s=20", None);
+        ok("https://x.com/user/status/1234567890123456789/video/1?s=46&t=abc", Some(1));
+        ok("https://twitter.com/user/status/1234567890123456789", None);
+        ok("https://www.twitter.com/user/status/1234567890123456789", None);
+        ok("https://mobile.twitter.com/user/status/1234567890123456789", None);
+        ok("http://WWW.X.COM/user/status/1234567890123456789/photo/2", Some(2));
+        ok("x.com/user/status/1234567890123456789", None);
+        ok("  https://x.com/user/status/1234567890123456789  ", None);
     }
 
     #[test]
-    fn rejeita_invalidos() {
+    fn rejects_invalid() {
         for url in [
             "",
-            "não é um link",
-            "https://youtube.com/usuario/status/1234567890123456789",
-            "https://notx.com/usuario/status/1234567890123456789",
-            "https://x.com/usuario",
-            "https://x.com/usuario/status/",
-            "https://x.com/usuario/status/abc",
-            "https://x.com/usuario/status/1234567890123456789/video/0",
-            "https://x.com/usuario/status/1234567890123456789/video/x",
-            "https://x.com/usuario/status/1234567890123456789/likes",
+            "not a link",
+            "https://youtube.com/user/status/1234567890123456789",
+            "https://notx.com/user/status/1234567890123456789",
+            "https://x.com/user",
+            "https://x.com/user/status/",
+            "https://x.com/user/status/abc",
+            "https://x.com/user/status/1234567890123456789/video/0",
+            "https://x.com/user/status/1234567890123456789/video/x",
+            "https://x.com/user/status/1234567890123456789/likes",
             "https://x.com/status/1234567890123456789",
-            "https://x.com/usuario/status/99999999999999999999999",
+            "https://x.com/user/status/99999999999999999999999",
         ] {
-            assert_eq!(parse(url), None, "deveria rejeitar: {url}");
+            assert_eq!(parse(url), None, "should reject: {url}");
         }
     }
 }
